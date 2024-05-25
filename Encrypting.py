@@ -1,31 +1,44 @@
 from matplotlib import pyplot as plt
 from RK4 import run
-from chooseWord import gen_password
+from Adam_Bashforth import adams_bashforth_4
+from chooseWord import get_word
 from Lorenz import lorenz
-from Ours import our_function
+from Rikitake_Dynamo import rik_dyn
 
 
 def prepare_password(password, block_size=32):
     password_bytes = password.encode()  # Convert password to bytes
     password_bits = ''.join(format(byte, '08b') for byte in password_bytes)  # Convert to bits
     padding_length = block_size - (len(password_bits) % block_size)
-    password_bits += '0' * padding_length  # Pad with zeros
-    blocks = []
-    for i in range(0, len(password_bits), block_size):
-        blocks.append(password_bits[i:i+block_size])
+    if (padding_length > 0):
+        password_bits += '0' * padding_length  # Pad with zeros ONLY if necessary
 
-    return blocks
+    return password_bits
 
 
-def generate_chaotic_sequence(solutions, bits_per_value=16):
+def generate_chaotic_sequence(bits_per_value=16):
+    y0 = [-1, 28, 6]
+    dt = 0.01
+    T = 50
+    t_span = (0, 25)
+    Y = [[], [], []]
+
+    # Y[0], Y[1], Y[2], _, _ = run(y0, dt, T, lorenz)
+    Y[0], Y[1], Y[2] = adams_bashforth_4(lorenz, y0, t_span, dt)
+    ax = plt.figure().add_subplot(projection='3d')
+    ax.plot(Y[0], Y[1], Y[2], 'b')
+    plt.show()
+
     chaotic_seq_bits = ""  # Initialize an empty binary string
 
-    for solution in solutions:
+    for solution in Y:
         decimal_part = abs(solution[-1] - int(solution[-1]))  # Get absolute decimal part
         binary_value = format(int(decimal_part * 2 ** bits_per_value),
                               f'0{bits_per_value}b')  # Convert to fixed-length binary
         chaotic_seq_bits += binary_value
 
+
+    #print(chaotic_seq_bits)
     return chaotic_seq_bits
 
 
@@ -34,7 +47,8 @@ def normalize_abc(password):
     dr = 0.01
     R = 50
     Z = [[], [], []]
-    abc = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+    abc = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+           'w', 'x', 'y', 'z']
     n = len(abc)
     normalized_last_values = []
 
@@ -77,43 +91,55 @@ def permute_block(block, block_size):
     return permuted_block
 
 
+def permute_block_inverse(block, block_size):
+    z0 = [-1, 28, 3.4]
+    dr = 0.01
+    R = 65
+    Z = [[], [], []]
 
-y0 = [-1, 28, 6]
-dt = 0.01
-T = 50
-Y = [[], [], []]
+    _, Z[1], _, _, _ = run(z0, dr, R, lorenz)
+    sequence = list(set(int(i) for i in Z[1]))
+
+    # Construct the inverse permutation map
+    inverse_permutation_map = [-1] * block_size
+    for i in range(block_size):
+        chaotic_index = sequence[i] % block_size
+        inverse_permutation_map[chaotic_index] = i
+
+    # Apply inverse permutation
+    unpermuted_block = ""
+    for i in range(block_size):
+        new_pos = inverse_permutation_map[i]
+        unpermuted_block += block[new_pos]
+
+    return unpermuted_block
+
+
 block_size = 32
 
 def encrypt():
-    Y[0], Y[1], Y[2], _, _ = run(y0, dt, T, lorenz)
-    ax = plt.figure().add_subplot(projection='3d')
-    ax.plot(Y[0], Y[1], Y[2], 'b')
-    plt.show()
-
     h = 0
-    password = gen_password()
+    password = get_word()
     password = normalize_abc(password)
-    blocks = prepare_password(password, block_size=block_size)
-    chaotic_seq_bits = generate_chaotic_sequence(Y, bits_per_value=16)
-    for block in blocks:
-        #Permutation of each block
+    password_bits = prepare_password(password, block_size=block_size)
+    chaotic_seq_bits = generate_chaotic_sequence(bits_per_value=16)
+
+    for i in range(0, len(password_bits), block_size):
+        block = password_bits[i:i + block_size]
+
+        # Permutation of the block
         block = permute_block(block, block_size)
 
         # Preparing chaotic sequence
-        if len(chaotic_seq_bits) >= block_size:
-            chaotic_chunk = chaotic_seq_bits[:block_size]
-            chaotic_seq_bits = chaotic_seq_bits[block_size:]
-        else:
-            chaotic_chunk = chaotic_seq_bits.ljust(block_size, '0')  # Pad with zeros
-            chaotic_seq_bits = ""
+        chaotic_chunk = chaotic_seq_bits[:block_size].ljust(block_size, '0')
+        chaotic_seq_bits = chaotic_seq_bits[block_size:]
         chaotic_value = int(chaotic_chunk, 2)
 
-        byte_values = [int(block[i:i + 8], 2) for i in range(0, len(block), 8)] #Convert from string to bytes
+        byte_values = [int(block[i:i + 8], 2) for i in range(0, len(block), 8)]  # Convert from string to bytes
         block_bytes = bytes(byte_values)
         block_int = int.from_bytes(block_bytes, byteorder='big')
 
-
-        #Encryption Algorithm
+        # Encryption Algorithm
         # Bitwise XOR
         xored_value = block_int ^ chaotic_value
 
@@ -124,7 +150,16 @@ def encrypt():
         # Modular Addition
         h = (h + rotated_value) % 2 ** block_size
 
-    print(h)
+    return h
 
-encrypt()
 
+
+# encrypted_password = encrypt()
+# print(encrypted_password)
+
+#use thhis method to run the class
+def generate_password_hash():
+    encrypted_password = encrypt()
+    return encrypted_password
+
+generate_password_hash()

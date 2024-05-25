@@ -2,6 +2,7 @@ from RK4 import run
 from Lorenz import lorenz
 from Ours import our_function
 from people import people
+import matplotlib.pyplot as plt
 
 
 def get_last_subdivision(index):
@@ -28,9 +29,12 @@ T = 65
 Y = [[], [], []]
 
 
-def gen_password():
+def get_word():
     global n, min_values, max_values
     Y[0], Y[1], Y[2], min_values, max_values = run(y0, dt, T, lorenz)
+    ax = plt.figure().add_subplot(projection='3d')
+    ax.plot(Y[0], Y[1], Y[2], 'b')
+    plt.show()
 
     # Selecting person
     n = len(people)
@@ -45,9 +49,11 @@ def gen_password():
     num = get_last_subdivision(2)
 
     # Generate salt from chaotic sequence
-    salt_length = 32  # Adjust salt length as needed
-    salt = generate_chaotic_sequence(Y, bits_per_value=8)[:salt_length]  # Use Y[0] for salt generation
-    password = salt + word + str(num)  # Prepend salt to the password
+    #salt_length = 32  # Adjust salt length as needed
+    #salt = generate_chaotic_sequence(Y, bits_per_value=8)[:salt_length]  # Use Y[0] for salt generation
+    #password = salt + word + str(num)  # Prepend salt to the password
+
+    password = word + str(num)
     print(password)
 
     return password
