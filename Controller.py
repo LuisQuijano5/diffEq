@@ -1,18 +1,93 @@
-"""
-In sign up there has to be a username field and at its side 3 double fields with the title
-of initial conditions
-this Data will be sent to Username
-below these fields there has to be a button to submit (this will auto generate the password)
-and send the data to the database, the encrypted username will be returned by the Username class
-and the hashed passwrod returned by the Encrypting class.
-The console should print the encrypted username and not encrypted password
 
-below that section put a log in section
-a username field to log the encrypted username and the initial conditions, this will be sent again to Username
-but to decrypt
-and put the password that was set.
-Here the controller should be able to call the encrypt again witht the password and compare with what was set
-in the database, also compare the decrypted username and username of the database
 
-So the databse will store the decrypted username and encrypted passeword
-"""
+import sys
+from PySide6 import QtWidgets
+from AppView import SignUpLoginView
+from Chen import chen
+from Lorenz import lorenz
+from Username import encrypt, decrypt
+from Encrypting import  generate_password_hash
+from Encrypting import encrypt as encrypt_pass
+from MySqlConnection import DatabaseManager
+
+
+class SignUpLoginController:
+    def __init__(self, app):
+        self.app = app
+        self.ventana = SignUpLoginView()
+        self.ventana.show()
+
+        # Instanciamos el gestor de base de datos
+        self.db_manager = DatabaseManager()
+
+        # Conectar eventos de la interfaz gráfica a la lógica
+        self.ventana.submit_button.clicked.connect(self.signup)
+        self.ventana.login_button.clicked.connect(self.login)
+
+    def signup(self):
+        username = self.ventana.username_signup.text()
+        initial_conditions = [
+            float(self.ventana.initial_condition1.text()),  # Convertir el texto a float
+            float(self.ventana.initial_condition2.text()),  # Convertir el texto a float
+            float(self.ventana.initial_condition3.text())  # Convertir el texto a float
+        ]
+
+        T = 50
+        dt = 0.01
+
+        # Encriptar el nombre de usuario
+        encrypted_username = encrypt(username, initial_conditions, T, dt, lorenz)
+
+        # Generar una contraseña en texto claro y cifrarla
+        encrypted_password, password = generate_password_hash()
+
+        # Guardar en la base de datos
+        self.db_manager.save_to_database(username, encrypted_password)
+
+        # Seguimiento en consola
+        print(f"Encrypted Username: {encrypted_username}")
+        print(f"Password: {password}")
+
+    def login(self):
+        encrypted_username = self.ventana.username_login.text()
+        password = self.ventana.password_login.text()
+        initial_conditions = [
+            float(self.ventana.initial_condition1_login.text()),  # Convertir el texto a float
+            float(self.ventana.initial_condition2_login.text()),  # Convertir el texto a float
+            float(self.ventana.initial_condition3_login.text())  # Convertir el texto a float
+        ]
+
+        T = 50
+        dt = 0.01
+
+        # Desencriptar el nombre de usuario almacenado
+        decrypted_username = decrypt(encrypted_username, initial_conditions, T, dt, lorenz)
+
+        # Encriptar la contraseña proporcionada por el usuario
+        encrypted_input_password = encrypt_pass(password)
+
+        # Recuperar datos de la base de datos
+        stored_username, stored_password = self.db_manager.retrieve_from_database(decrypted_username)
+
+        if stored_username is None or stored_password is None:
+            print("Login Failed: User not found")
+            return
+
+        # Comparar los datos ingresados con los almacenados
+        if str(encrypted_input_password) == stored_password:
+            if decrypted_username == stored_username:
+                print("Login Successful")
+            else:
+                print("Login Failed: Username does not match")
+        else:
+            print("Login Failed: Password does not match")
+
+
+    def run(self):
+        sys.exit(self.app.exec())
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    controller = SignUpLoginController(app)
+    controller.run()

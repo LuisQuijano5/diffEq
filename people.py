@@ -1,7 +1,9 @@
 people = [
-    ["cats", "football", "videos"],  # me
-    ["anime", "gym", "series", "cosasraras"],  # ulises
-    ["queries", "swimming", "python"], # erick
-    ["emiliozuñiga", "dembele"] # rebo
+    ["cats", "football", "videos"],
+    ["gym", "playerasajolote", "lol"],
+    ["anime", "gym", "series", "cosasraras"],
+    ["queries", "swimming", "python"],
+    ["emiliozuñiga", "dembele", "hachita"],
+    ["motos", "circuitos"],
+    ["greenday", "sailormoon", "kenalykel"]
 ]
-

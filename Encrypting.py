@@ -50,23 +50,27 @@ def normalize_abc(password):
     abc = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
            'w', 'x', 'y', 'z']
     n = len(abc)
-    normalized_last_values = []
 
     Z[0], Z[1], Z[2], min_values, max_values = run(z0, dr, R, lorenz)
-    for j, z_array in enumerate(Z):
+
+    normalized_ranges = []
+    for j in range(3):
         variable_range = max_values[j] - min_values[j]
         subdivision_size = variable_range / n
-        normalized_value = (z_array[-1] - min_values[j]) / subdivision_size
-        last_subdivision = int(normalized_value)
-        normalized_last_values.append(last_subdivision)
+        subdivisions = [min_values[j] + k * subdivision_size for k in range(n)]
+        normalized_ranges.append(subdivisions)
 
     subdivision_string = ""
-    for i, letter in enumerate(password):
-        index = i % 3
-        subdivision = normalized_last_values[index]
-        subdivision_string += str(subdivision)
+    for letter in password:
+        if letter not in abc:
+            continue
 
-    return subdivision_string
+        index = abc.index(letter)
+        subdivision_value = normalized_ranges[2][index]  # Use Y[2] for the values
+        #print(subdivision_value)
+        subdivision_string += f"{subdivision_value:.2f},"  # Format as a string with 2 decimal places
+
+    return subdivision_string[:-1]
 
 
 def permute_block(block, block_size):
@@ -117,9 +121,8 @@ def permute_block_inverse(block, block_size):
 
 block_size = 32
 
-def encrypt():
+def encrypt(password):
     h = 0
-    password = get_word()
     password = normalize_abc(password)
     password_bits = prepare_password(password, block_size=block_size)
     chaotic_seq_bits = generate_chaotic_sequence(bits_per_value=16)
@@ -152,14 +155,14 @@ def encrypt():
 
     return h
 
-
-
 # encrypted_password = encrypt()
 # print(encrypted_password)
 
 #use thhis method to run the class
 def generate_password_hash():
-    encrypted_password = encrypt()
-    return encrypted_password
+    password = get_word()
+    encrypted_password = encrypt(password)
+    return encrypted_password, password
 
 generate_password_hash()
+#print(generate_password_hash())

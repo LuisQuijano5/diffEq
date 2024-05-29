@@ -1,0 +1,29 @@
+#Biseccion
+{
+    background-color: rgba(243, 224, 220, 0.59);
+}
+
+
+QLabel {
+    font-family: "Segoe UI Emoji", fantasy;
+    font-size: 20px;
+}
+/* Siguiente button */
+QPushButton {
+    background-color: #4CAF50;
+    font-size: 14px;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #3e8e41; /* Darker green on hover */
+}
+
+QRadioButton
+{
+    font-family: "Segoe UI Emoji", fantasy;
+    font-size: 18px;
+}

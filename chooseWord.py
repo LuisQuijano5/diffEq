@@ -54,6 +54,13 @@ def get_word():
     #password = salt + word + str(num)  # Prepend salt to the password
 
     password = word + str(num)
-    print(password)
-
+    #print(password)
     return password
+
+
+def generate_password():
+    password = get_word()
+    return password
+
+generate_password()
+#print(generate_password())
